@@ -1,0 +1,15 @@
+{
+  "name": "nich-outlandish",
+  "version": "1.0.0",
+  "description": "",
+  "main": "heptathlon_score_calculator.js",
+  "scripts": {
+    "calc" : "node heptathlon_score_calculator.js data.csv"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^3.2.5"
+  }
+}
