@@ -6,14 +6,15 @@ const main = async () => {
     const fileContentsInRows = await readInputFile(csvFilePath);
     const eventData = parseEventData(fileContentsInRows);
     const eventDataWithScores = eventData.map(calculateEventScore);
-    const structuredData = dataByDayAndAthlete(eventDataWithScores);
-    outputData(structuredData);
+    const dataSortedByDayAndAthlete =
+      sortDataByDayAndAthlete(eventDataWithScores);
+    outputData(dataSortedByDayAndAthlete);
   } catch (error) {
     console.error('An error occurred:', error);
   }
 };
 
-// Read csv file and returns raw data
+// Read csv file and returns raw data split by row
 const readInputFile = async (filePath) => {
   try {
     const data = await readFile(filePath, 'utf8');
@@ -56,6 +57,7 @@ const parsePerformanceValue = (performance) => {
   }
 };
 
+// Event Calculations
 const eventScoreCalculators = {
   '200m': (performance) => Math.floor(4.99087 * (42.5 - performance) ** 1.81),
   '800m': (performance) => Math.floor(0.11193 * (254 - performance) ** 1.88),
@@ -88,43 +90,48 @@ const formatDate = (date) => {
     day: '2-digit',
   });
 };
-
-const dataByDayAndAthlete = (eventData) => {
-  const structuredData = {};
-  const sortedByDate = eventData.sort((a, b) => a.data - b.date);
+// Sorts data into nested objects by day and then by athlete
+const sortDataByDayAndAthlete = (eventData) => {
+  const sortedByDayAndAthlete = {};
+  const sortedByDate = eventData.sort((a, b) => a.date - b.date);
 
   sortedByDate.forEach(({ date, athlete, event, score }) => {
     const dateKey = formatDate(date);
 
-    if (!structuredData[dateKey]) {
-      structuredData[dateKey] = {};
+    if (!sortedByDayAndAthlete[dateKey]) {
+      sortedByDayAndAthlete[dateKey] = {};
     }
 
-    if (!structuredData[dateKey][athlete]) {
-      structuredData[dateKey][athlete] = {};
+    if (!sortedByDayAndAthlete[dateKey][athlete]) {
+      sortedByDayAndAthlete[dateKey][athlete] = {};
     }
 
-    structuredData[dateKey][athlete][event] = score;
+    sortedByDayAndAthlete[dateKey][athlete][event] = score;
   });
-  return structuredData;
+  return sortedByDayAndAthlete;
 };
 
+// Formats data for outputs and calculates daily totals
 const outputData = (data) => {
+  const dateEntries = Object.entries(data);
+
+  // Out put a header for each day
   Object.entries(data).forEach(([date, athletes], index) => {
     console.log('====================');
     console.log(`Day ${index + 1}: ${date}`);
     console.log('====================');
 
     // Accumulate total scores for each athlete
-    const athletesTotalDailyScores = Object.entries(athletes).map(
-      ([athleteName, events]) => {
+    const athletesTotalDailyScores = Object.entries(athletes)
+      .map(([athleteName, events]) => {
         const dailyScore = Object.values(events).reduce(
           (total, score) => total + score,
           0
         );
         return { athleteName, dailyScore };
-      }
-    );
+      })
+      // Filter out any athlete with a score of 0
+      .filter(({ dailyScore }) => dailyScore > 0);
 
     // Sort athletes by dailyScore in descending order
     const sortedAthletes = athletesTotalDailyScores.sort(
@@ -140,10 +147,12 @@ const outputData = (data) => {
         .padEnd(paddingLength, ' ');
       console.log(`${paddedName}${dailyScore}`);
     });
-
-    console.log();
+    // Add /n to every entry except last
+    if (index < dateEntries.length - 1) {
+      console.log();
+    }
   });
 };
 
-//Runs main function
+// Runs main function
 main();
