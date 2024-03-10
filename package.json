@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "heptathlon_score_calculator.js",
+  "type": "module",
   "scripts": {
-    "calc" : "node heptathlon_score_calculator.js data.csv"
+    "calc": "node heptathlon_score_calculator.js data.csv"
   },
   "keywords": [],
   "author": "",
