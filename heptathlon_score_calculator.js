@@ -1,17 +1,16 @@
 import { readFile } from 'fs/promises';
 
 const main = async () => {
-  const csvFilePath = process.argv[2];
-  const fileContentsInRows = await readInputFile(csvFilePath);
-  const eventData = parseEventData(fileContentsInRows);
-
-  const eventDataWithScores = eventData.map((event) => {
-    return calculateEventScore(event);
-  });
-
-  const structuredData = dataByDayAndAthlete(eventDataWithScores);
-
-  outputData(structuredData);
+  try {
+    const csvFilePath = process.argv[2];
+    const fileContentsInRows = await readInputFile(csvFilePath);
+    const eventData = parseEventData(fileContentsInRows);
+    const eventDataWithScores = eventData.map(calculateEventScore);
+    const structuredData = dataByDayAndAthlete(eventDataWithScores);
+    outputData(structuredData);
+  } catch (error) {
+    console.error('An error occurred:', error);
+  }
 };
 
 // Read csv file and returns raw data
@@ -78,7 +77,7 @@ const calculateEventScore = (eventObj) => {
     };
   } else {
     console.log('Event not recognized');
-    return 0;
+    return null;
   }
 };
 
@@ -108,6 +107,42 @@ const dataByDayAndAthlete = (eventData) => {
     structuredData[dateKey][athlete][event] = score;
   });
   return structuredData;
+};
+
+const outputData = (data) => {
+  Object.entries(data).forEach(([date, athletes], index) => {
+    console.log('====================');
+    console.log(`Day ${index + 1}: ${date}`);
+    console.log('====================');
+
+    // Accumulate total scores for each athlete
+    const athletesTotalDailyScores = Object.entries(athletes).map(
+      ([athleteName, events]) => {
+        const dailyScore = Object.values(events).reduce(
+          (total, score) => total + score,
+          0
+        );
+        return { athleteName, dailyScore };
+      }
+    );
+
+    // Sort athletes by dailyScore in descending order
+    const sortedAthletes = athletesTotalDailyScores.sort(
+      (a, b) => b.dailyScore - a.dailyScore
+    );
+
+    // Output each athlete's score
+    sortedAthletes.forEach(({ athleteName, dailyScore }) => {
+      // Calculate the correct padding for each line
+      const paddingLength = 20 - dailyScore.toString().length;
+      const paddedName = athleteName
+        .toLocaleUpperCase()
+        .padEnd(paddingLength, ' ');
+      console.log(`${paddedName}${dailyScore}`);
+    });
+
+    console.log();
+  });
 };
 
 //Runs main function
