@@ -5,11 +5,13 @@ const main = async () => {
   const fileContentsInRows = await readInputFile(csvFilePath);
   const eventData = parseEventData(fileContentsInRows);
 
-  const calculatedScores = eventData.map((entry) => {
-    return calculateEventScore(entry);
+  const eventDataWithScores = eventData.map((event) => {
+    return calculateEventScore(event);
   });
 
-  console.log({ calculatedScores });
+  const structuredData = dataByDayAndAthlete(eventDataWithScores);
+
+  outputData(structuredData);
 };
 
 // Read csv file and returns raw data
@@ -28,7 +30,7 @@ const parseEventData = (rowData) => {
     rowData
       // Remove white space
       .filter((row) => row.trim() !== '')
-      // Loop through and destructure each entry to a name variable
+      // Loop through and destructure each entry to a named variable
       .map((row) => {
         const [athlete, event, performance, date] = row
           .split(',')
@@ -37,19 +39,20 @@ const parseEventData = (rowData) => {
         return {
           athlete: athlete.toLowerCase(),
           event: event.toLowerCase(),
-          performance: parsePerformance(performance),
-          date: date,
+          performance: parsePerformanceValue(performance),
+          date: new Date(date.split(' ')[0]),
         };
       })
   );
 };
 
-const parsePerformance = (performance) => {
-  //checks if performance is in minute:second format and formats correctly
+const parsePerformanceValue = (performance) => {
+  // Checks if performance is in minute:second format and converst to seconds
   if (performance.includes(':')) {
     const [minutes, seconds] = performance.split(':').map(parseFloat);
     return minutes * 60 + seconds;
   } else {
+    // Parses other formats to floating point number and strips units
     return parseFloat(performance);
   }
 };
@@ -77,6 +80,34 @@ const calculateEventScore = (eventObj) => {
     console.log('Event not recognized');
     return 0;
   }
+};
+
+const formatDate = (date) => {
+  return date.toLocaleDateString('en-UK', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+};
+
+const dataByDayAndAthlete = (eventData) => {
+  const structuredData = {};
+  const sortedByDate = eventData.sort((a, b) => a.data - b.date);
+
+  sortedByDate.forEach(({ date, athlete, event, score }) => {
+    const dateKey = formatDate(date);
+
+    if (!structuredData[dateKey]) {
+      structuredData[dateKey] = {};
+    }
+
+    if (!structuredData[dateKey][athlete]) {
+      structuredData[dateKey][athlete] = {};
+    }
+
+    structuredData[dateKey][athlete][event] = score;
+  });
+  return structuredData;
 };
 
 //Runs main function
